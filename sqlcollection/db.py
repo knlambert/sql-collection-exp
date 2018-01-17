@@ -5,11 +5,9 @@ Contains DB Class.
 
 from sqlalchemy import (
     create_engine,
-    MetaData,
-    inspect
+    MetaData
 )
-from sqlalchemy.sql import select
-from sqlalchemy.orm import sessionmaker
+from .collection import Collection
 
 
 class DB(object):
@@ -23,7 +21,6 @@ class DB(object):
             url (unicode): The DB connection URL.
         """
         self._url = url
-        self._tables = []
 
     def __getattr__(self, name):
         """
@@ -37,7 +34,7 @@ class DB(object):
         """
         if name not in self.__dict__:
             self.discover_collections()
-            self.__dict__[name] = u"test"
+
         return self.__dict__[name]
 
     def get_engine(self):
@@ -49,14 +46,11 @@ class DB(object):
         return create_engine(self._url)
 
     def discover_collections(self):
+        """
+        Discover tables, create a collection object for each one in the
+        schema.
+        """
         meta = MetaData()
         meta.reflect(bind=self.get_engine())
-        self._tables = meta.tables
-
-    def list(self):
-        engine = self.get_engine()
-        conn = engine.connect()
-        user = self._tables[u"user"]
-        req = select([user])
-        for row in conn.execute(req):
-            print(row)
+        for key in meta.tables:
+            setattr(self, key, Collection(db_ref=self, meta_table=meta.tables[key]))
