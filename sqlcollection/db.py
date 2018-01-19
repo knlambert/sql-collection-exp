@@ -53,4 +53,8 @@ class DB(object):
         meta = MetaData()
         meta.reflect(bind=self.get_engine())
         for key in meta.tables:
-            setattr(self, key, Collection(db_ref=self, meta_table=meta.tables[key]))
+            root_table = meta.tables[key]
+            setattr(self, key, Collection(
+                db_ref=self,
+                root_table=root_table
+            ))

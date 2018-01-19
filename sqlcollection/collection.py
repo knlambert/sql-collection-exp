@@ -10,15 +10,17 @@ class Collection(object):
     """
     Wrapper around a collection.
     """
-    def __init__(self, db_ref, meta_table):
+    def __init__(self, db_ref, root_table, related_tables=None):
         """
         Construct the object.
         Args:
             db_ref (DB): A reference to the DB object (parent).
-            meta_table (sqlalchemy.sql.schema.Table): The table the collection wraps.
+            root_table (sqlalchemy.sql.schema.Table): The table the collection wraps.
+            related_tables (list of sqlalchemy.sql.schema.Table): Tables in relation with the root one.
         """
         self._db_ref = db_ref
-        self.meta_table = meta_table
+        self._root_table = root_table
+        self._related_tables = related_tables or []
 
     def get_connection(self):
         """
@@ -28,6 +30,32 @@ class Collection(object):
         """
         connection = self._db_ref.get_engine().connect()
         return connection
+
+    def generate_select_joins(self, root_table):
+        """
+        Generate the list of relations.
+        Args:
+            root_table (sqlalchemy.sql.schema.Table): The root table we fetch the relations from.
+
+        Returns:
+            (lists of sqlalchemy.sql.schema.Table)
+        """
+        linked_tables = []
+        for column in root_table.columns:
+                linked_tables += [
+                    (column.name, column, foreign_key.column) for foreign_key in column.foreign_keys
+                ]
+        print(linked_tables)
+        return linked_tables
+
+    def generate_select_fields(self):
+        """
+        Generate the fields for the select request.
+
+        Returns:
+            (list of sqlalchemy.sql.elements.Label): List of labels to generate the SQL query.
+        """
+        return [column.label(unicode(column.name)) for column in self._root_table.columns]
 
     def find(self, query=None, projection=None, lookup=None, auto_lookup=0):
         """
@@ -41,9 +69,9 @@ class Collection(object):
                 them for us. This can have consequences on optimization as it constructs
                 joins. Be careful.
         """
-        client = getattr(self._db_ref, u'client').meta_table
-        request = select([self.meta_table.c.id.label(u"test"), client.c.name]).select_from(
-            self.meta_table.join(client)
+        fields = self.generate_select_fields()
+        request = select(fields).select_from(
+            self._root_table #.join(client)
         )
         conn = self.get_connection()
         print(request.c)
