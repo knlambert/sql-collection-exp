@@ -56,5 +56,5 @@ class DB(object):
             root_table = meta.tables[key]
             setattr(self, key, Collection(
                 db_ref=self,
-                root_table=root_table
+                table=root_table
             ))
