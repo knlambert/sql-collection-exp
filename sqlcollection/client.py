@@ -6,7 +6,6 @@ Contains the Client class.
 from .db import DB
 from sqlalchemy import (
     create_engine,
-    MetaData,
     inspect
 )
 
