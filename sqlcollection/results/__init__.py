@@ -1,0 +1,1 @@
+from .insert_one_result import InsertResultOne

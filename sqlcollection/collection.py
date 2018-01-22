@@ -9,6 +9,12 @@ from sqlalchemy.sql import (
     and_,
     or_
 )
+from .results import (
+    InsertResultOne
+)
+
+from .utils import json_to_one_level
+
 
 class Collection(object):
     """
@@ -58,16 +64,27 @@ class Collection(object):
         return linked_tables
 
     @staticmethod
-    def generate_select_fields_mapping(table, fields_to_ignore, prefix=None):
+    def generate_select_fields_mapping(table, prefix=None):
+        """
+        Generates the mapping between json keys and table columns.
+        Args:
+            table (sqlalchemy.sql.schema.Table): The table we want the mapping.
+            prefix (unicode): A prefix to add to the keys.
+
+        Returns:
+            (dict): The field mapping (unicode: Column).
+        """
+
         fields_mapping = {}
         for column in table.columns:
+
             label_parts = [column.name]
+
             if prefix is not None:
                 label_parts.insert(0, prefix)
 
-            if u".".join([column.table.name, column.name]) not in fields_to_ignore:
-                label = u".".join(label_parts)
-                fields_mapping[label] = column
+            label = u".".join(label_parts)
+            fields_mapping[label] = column
 
         return fields_mapping
 
@@ -80,11 +97,9 @@ class Collection(object):
         Returns:
             (list of sqlalchemy.sql.elements.Label, list of tuples)
         """
-        fields_to_ignore = [
-            u".".join([look[u"to"], look[u"localField"]]) for look in lookup
-        ]
+        switch_plan = []
 
-        fields = self.generate_select_fields_mapping(self._table, fields_to_ignore)
+        fields_mapping = self.generate_select_fields_mapping(self._table)
 
         joins = []
         for relation in lookup:
@@ -92,13 +107,21 @@ class Collection(object):
             from_table = getattr(self._db_ref, relation[u"from"])._table
             to_table = getattr(self._db_ref, relation[u"to"])._table
 
-            joins.append((
-                from_table, getattr(to_table.c, relation[u"localField"]), getattr(from_table.c, relation[u"foreignField"])
-            ))
+            from_column = getattr(from_table.c, relation[u"foreignField"])
+            to_column = getattr(to_table.c, relation[u"localField"])
+            joins.append((from_table, to_column, from_column))
 
-            fields.update(self.generate_select_fields_mapping(from_table, fields_to_ignore, relation[u"as"]))
+            switch_plan.append((from_column, to_column))
 
-        return fields, joins
+            fields_mapping.update(self.generate_select_fields_mapping(from_table, relation[u"as"]))
+
+        for from_column, to_column in switch_plan:
+            for key, column in fields_mapping.items():
+                if column.table.name == from_column.table.name and column.name == from_column.name:
+                    fields_mapping[key] = to_column
+                elif column.table.name == to_column.table.name and column.name == to_column.name:
+                    del fields_mapping[key]
+        return fields_mapping, joins
 
     def generate_lookup(self, table, deep, prefix=None):
         """
@@ -150,7 +173,6 @@ class Collection(object):
         for filt in query:
             for key, value in filt.items():
                 if key in fields_mapping:
-
                     if isinstance(value, dict):
                         filters += [self._parse_query(value, fields_mapping, parent=key)]
                     else:
@@ -178,7 +200,6 @@ class Collection(object):
 
         return conjunction(*filters)
 
-
     def find(self, query=None, projection=None, lookup=None, auto_lookup=0):
         """
         Does a find query on the collection.
@@ -187,9 +208,7 @@ class Collection(object):
             projection (dict): The projection parameter determines which columns are returned
                 in the matching documents.
             lookup (list of dict): The lookup to apply during this query.
-            auto_lookup (int): If we don't know what lookup we want, we let the lib to look
-                them for us. This can have consequences on optimization as it constructs
-                joins. Be careful.
+            auto_lookup (int): How many levels of lookup will be generated automatically.
         Returns:
             (Cursor): Cursor to wrap the request result.
         """
@@ -212,4 +231,30 @@ class Collection(object):
         if query is not None:
             request = request.where(self._parse_query(query, fields_mapping))
         return Cursor(self, request)
+
+    def insert_one(self, document, lookup=None, auto_lookup=0):
+        """
+        Insert a document in the table.
+        Args:
+            document (dict): The document to insert.
+            lookup (list of dict): The lookup to apply during this query.
+            auto_lookup (int): How many levels of lookup will be generated automatically.
+
+        Returns:
+            (InsertResultOne): The result object.
+        """
+        document = json_to_one_level(document)
+        lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
+        fields_mapping, _ = self.generate_select_dependencies(lookup)
+
+        insert_kwargs = {}
+        for key in document:
+            column = fields_mapping.get(key)
+
+            if column is not None and column.table.name == self._table.name:
+                insert_kwargs[column.name] = document[key]
+
+        request = self._table.insert().values(**insert_kwargs)
+        result = self.get_connection().execute(request)
+        return InsertResultOne(inserted_id=result.inserted_primary_key)
 
