@@ -10,6 +10,7 @@ from sqlalchemy.sql import (
     or_
 )
 from .results import (
+    DeleteResult,
     InsertResultOne
 )
 
@@ -121,6 +122,7 @@ class Collection(object):
                     fields_mapping[key] = to_column
                 elif column.table.name == to_column.table.name and column.name == to_column.name:
                     del fields_mapping[key]
+
         return fields_mapping, joins
 
     def generate_lookup(self, table, deep, prefix=None):
@@ -231,6 +233,27 @@ class Collection(object):
         if query is not None:
             request = request.where(self._parse_query(query, fields_mapping))
         return Cursor(self, request)
+
+    def delete_many(self, filter, lookup=None, auto_lookup=0):
+        """
+        Delete many items from the collection.
+        Args:
+            filter (dict): query (dict): The mongo like query to execute.
+            lookup (list of dict): The lookup to apply during this query.
+            auto_lookup (int): How many levels of lookup will be generated automatically.
+
+        Returns:
+            (DeleteResult): The delete operation result.
+        """
+        lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
+        fields_mapping, _ = self.generate_select_dependencies(lookup)
+        filters = self._parse_query(filter, fields_mapping)
+        if str(filters) == u"":
+            raise ValueError(u"Filter parameter is missing.")
+
+        request = self._table.delete().where(filters)
+        result = self.get_connection().execute(request)
+        return DeleteResult(deleted_count=result.rowcount)
 
     def insert_one(self, document, lookup=None, auto_lookup=0):
         """
