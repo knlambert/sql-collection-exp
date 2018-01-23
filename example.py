@@ -40,13 +40,21 @@ ret = hour.insert_one({
             u"id": 1
         },
         u'project': {
-            u"id": 1
+            u"id": 2
         },
         u'started_at': datetime.datetime(2017, 12, 18, 14, 0),
         u'minutes': 333
 }, auto_lookup=1)
 print(ret.inserted_id)
+#
+# ret = hour.delete_many({
+#     u"project.id": 2
+# }, auto_lookup=3)
 
-ret = hour.delete_many({
-    u"minutes": 333
-})
+ret = hour.update_many({
+    u"project.id": 2
+}, {
+    u"$set": {
+        u"issue": u"updated"
+    }
+}, auto_lookup=3)

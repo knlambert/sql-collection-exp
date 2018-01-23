@@ -5,12 +5,15 @@ Contains DB Class.
 
 from .cursor import Cursor
 from sqlalchemy.sql import (
+    delete,
+    update,
     select,
     and_,
     or_
 )
 from .results import (
     DeleteResult,
+    UpdateResult,
     InsertResultOne
 )
 
@@ -246,12 +249,16 @@ class Collection(object):
             (DeleteResult): The delete operation result.
         """
         lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
-        fields_mapping, _ = self.generate_select_dependencies(lookup)
+        fields_mapping, joins = self.generate_select_dependencies(lookup)
         filters = self._parse_query(filter, fields_mapping)
         if str(filters) == u"":
             raise ValueError(u"Filter parameter is missing.")
 
-        request = self._table.delete().where(filters)
+        join_where = and_(
+            *[(local_field == foreign_field) for foreign_table, local_field, foreign_field in joins]
+        )
+
+        request = self._table.delete().where(join_where).where(filters)
         result = self.get_connection().execute(request)
         return DeleteResult(deleted_count=result.rowcount)
 
@@ -273,7 +280,6 @@ class Collection(object):
         insert_kwargs = {}
         for key in document:
             column = fields_mapping.get(key)
-
             if column is not None and column.table.name == self._table.name:
                 insert_kwargs[column.name] = document[key]
 
@@ -281,3 +287,34 @@ class Collection(object):
         result = self.get_connection().execute(request)
         return InsertResultOne(inserted_id=result.inserted_primary_key)
 
+    def update_many(self, filter, update, lookup=None, auto_lookup=0):
+        """
+        Update many items from the collection.
+        Args:
+            filter (dict): query (dict): The mongo like query to execute.
+            lookup (list of dict): The lookup to apply during this query.
+            auto_lookup (int): How many levels of lookup will be generated automatically.
+
+        Returns:
+            (UpdateResult): The update operation result.
+        """
+        lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
+        fields_mapping, joins = self.generate_select_dependencies(lookup)
+        filters = self._parse_query(filter, fields_mapping)
+        if str(filters) == u"":
+            raise ValueError(u"Filter parameter is missing.")
+
+        join_where = and_(
+            *[(local_field == foreign_field) for foreign_table, local_field, foreign_field in joins]
+        )
+
+
+        update_kwargs = {}
+        for key in update[u"$set"]:
+            column = fields_mapping.get(key)
+            if column is not None and column.table.name == self._table.name:
+                update_kwargs[column.name] = update[u"$set"][key]
+
+        request = self._table.update().values(**update_kwargs).where(join_where).where(filters)
+        result = self.get_connection().execute(request)
+        return UpdateResult(matched_count=result.rowcount, modified_count=result.rowcount)
