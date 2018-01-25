@@ -235,7 +235,7 @@ class Collection(object):
 
         if query is not None:
             request = request.where(self._parse_query(query, fields_mapping))
-        return Cursor(self, request)
+        return Cursor(self, request, lookup)
 
     def delete_many(self, filter, lookup=None, auto_lookup=0):
         """
@@ -308,13 +308,12 @@ class Collection(object):
             *[(local_field == foreign_field) for foreign_table, local_field, foreign_field in joins]
         )
 
-
         update_kwargs = {}
         for key in update[u"$set"]:
             column = fields_mapping.get(key)
-            if column is not None and column.table.name == self._table.name:
-                update_kwargs[column.name] = update[u"$set"][key]
+            if column is not None:
+                update_kwargs[column] = update[u"$set"][key]
 
-        request = self._table.update().values(**update_kwargs).where(join_where).where(filters)
+        request = self._table.update().values(update_kwargs).where(join_where).where(filters)
         result = self.get_connection().execute(request)
         return UpdateResult(matched_count=result.rowcount, modified_count=result.rowcount)
