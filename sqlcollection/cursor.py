@@ -4,11 +4,12 @@ Contains DB Class.
 """
 
 from .utils import json_set
+from sqlalchemy import func, select, subquery, union
 
 
 class Cursor(object):
 
-    def __init__(self, collection_ref, select, lookup):
+    def __init__(self, collection_ref, fields, joins, where, lookup):
         """
         Constructs the object.
         Args:
@@ -16,19 +17,65 @@ class Cursor(object):
             select (sqlalchemy.sql.selectable.Select): The select request to process.
             lookup (list of dict): The lookup parameter used in the find query associated.
         """
-        self._select = select
+        self._fields = fields
+        self._joins = joins
+        self._where = where
+        self._limit = None
+        self._offset = None
+        self._sort = None
+        self._order_by = None
+
         self._collection_ref = collection_ref
-        self._executed = False
-        self._rows = None
         self._lookup = lookup
 
     def __iter__(self):
-        if not self._executed:
-            conn = self._collection_ref.get_connection()
-            rows = conn.execute(self._select)
-            self._executed = True
-            self._rows = self._to_dict_generator(self._select.c, rows)
-        return self._rows
+        conn = self._collection_ref.get_connection()
+        request = self._serialize()
+        rows = conn.execute(request)
+        return self._to_dict_generator(select(self._fields).c, rows)
+
+    def _serialize_count(self, with_limit_and_skip=False):
+        """
+        Serialize the request to send the count of items in the cursor.
+        Args:
+            with_limit_and_skip (boolean): If the count ignores limit / skip or not.
+
+        Returns:
+            (sqlalchemy.sql.selectable.Select): A SQLAlchemy representation of the select request used.
+        """
+        if not with_limit_and_skip:
+            request = self._serialize([func.count()], add_limit_and_skip=False)
+        else:
+            request = select([func.count()]).select_from(self._serialize().alias(u"sub"))
+
+        return request
+
+    def _serialize(self, labels=None, add_limit_and_skip=True):
+        """
+        Serialize the request using the different elements from the cursor.
+        Args:
+            labels (list of sqlalchemy.sql.elements.Label): A list of select labels. Used to affect which fields
+                are returned (for count and projection features).
+        Returns:
+            (sqlalchemy.sql.selectable.Select): A SQLAlchemy representation of the select request.
+        """
+        request = self._joins
+
+        if self._where is not None:
+            request = request.where(self._where)
+
+        if self._order_by is not None:
+            request = request.order_by(*self._order_by)
+
+        request = select(labels or self._fields).select_from(request)
+
+        if self._offset is not None and add_limit_and_skip:
+            request = request.offset(self._offset)
+
+        if self._limit is not None and add_limit_and_skip:
+            request = request.limit(self._limit)
+
+        return request
 
     @staticmethod
     def _to_dict_generator(columns, rows):
@@ -86,7 +133,7 @@ class Cursor(object):
             if column is not None:
                 to_order_by.append(getattr(column, binding[direction[index]])())
 
-        self._select = self._select.order_by(*to_order_by)
+        self._order_by = to_order_by
         return self
 
     def limit(self, limit):
@@ -98,7 +145,7 @@ class Cursor(object):
         Returns:
             (Cursor): The cursor itself.
         """
-        self._select = self._select.limit(limit)
+        self._limit = limit
         return self
 
     def skip(self, skip):
@@ -110,5 +157,18 @@ class Cursor(object):
         Returns:
             (Cursor): The cursor itself.
         """
-        self._select = self._select.offset(skip)
+        self._offset = skip
         return self
+
+    def count(self, with_limit_and_skip=False):
+        """
+        Return the line count for the cursor.
+        Args:
+            with_limit_and_skip (boolean): If the count ignores limit / skip or not.
+        Returns:
+            (int): The line count.
+        """
+        conn = self._collection_ref.get_connection()
+        request = self._serialize_count(with_limit_and_skip)
+        count = conn.execute(request)
+        return list(count)[0][0]

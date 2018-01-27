@@ -28,11 +28,21 @@ import datetime
 client = Client(url=u'mysql://root:localroot1234@127.0.0.1/')
 hour = client.hours_count.hour
 
-cursor = hour.find(query={u"project.client.id": 1}, auto_lookup=3).limit(1).skip(0)
+cursor = hour.find(auto_lookup=1, projection={
+    u"project": -1,
+    u"affected_to.id": -1
+}).limit(4)
+for item in cursor:
+    print(item)
 
+print(u"___count")
+count = hour.find(auto_lookup=0).limit(3).count()
+print(count)
 
-for row in cursor:
-    print(row)
+print(u"___count with_limit_and_skip")
+count = hour.find(auto_lookup=0).limit(3).count(with_limit_and_skip=True)
+print(count)
+quit()
 
 ret = hour.insert_one({
         u'issue': '',
@@ -55,6 +65,7 @@ ret = hour.update_many({
     u"project.id": 2
 }, {
     u"$set": {
-        u"issue": u"updated"
+        u"issue": u"updated",
+        u"project.client.name": u"BNC2"
     }
 }, auto_lookup=3)

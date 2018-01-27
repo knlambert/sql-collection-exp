@@ -7,6 +7,7 @@ from .cursor import Cursor
 from sqlalchemy.sql import (
     delete,
     update,
+    func,
     select,
     and_,
     or_
@@ -205,6 +206,37 @@ class Collection(object):
 
         return conjunction(*filters)
 
+    def _apply_projection(self, labels, projection):
+        """
+        Apply a projection by filtering labels regarding the value of projection parameter.
+        Args:
+            labels (list of sqlalchemy.sql.elements.Label): A list of select labels. Used to affect which fields
+                are returned (for count and projection features).
+            projection (dict): Definition of the fields to keep or not.
+
+        Returns:
+            (list of sqlalchemy.sql.elements.Label): The label(s) left after projection.
+        """
+        projection = json_to_one_level(projection)
+        to_keep = [key for key in projection]
+        mode = list(projection.items())[0][1]
+
+        for index, label in reversed(list(enumerate(labels))):
+
+            do_keep = False if mode == 1 else True
+
+            for key in to_keep:
+                if key in label.name:
+                    do_keep = not do_keep
+                    break
+
+            if not do_keep:
+                labels.pop(index)
+
+
+        return labels
+
+
     def find(self, query=None, projection=None, lookup=None, auto_lookup=0):
         """
         Does a find query on the collection.
@@ -229,13 +261,16 @@ class Collection(object):
                 acc = acc.join(foreign_table, local_field == foreign_field)
 
         acc = self._table if acc is None else acc
-
         labels = [column.label(label) for label, column in fields_mapping.items()]
-        request = select(labels).select_from(acc)
 
+        where = None
         if query is not None:
-            request = request.where(self._parse_query(query, fields_mapping))
-        return Cursor(self, request, lookup)
+            where = self._parse_query(query, fields_mapping)
+
+        if projection is not None:
+            labels = self._apply_projection(labels, projection)
+
+        return Cursor(self, labels, acc, where, lookup)
 
     def delete_many(self, filter, lookup=None, auto_lookup=0):
         """
@@ -316,4 +351,4 @@ class Collection(object):
 
         request = self._table.update().values(update_kwargs).where(join_where).where(filters)
         result = self.get_connection().execute(request)
-        return UpdateResult(matched_count=result.rowcount, modified_count=result.rowcount)
+        return UpdateResult(matched_count=result.rowcount)
