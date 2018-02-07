@@ -41,7 +41,6 @@ class Collection(object):
         }
         self._operators = [u"$eq", u"$gte", u"$gt", u"$lte", u"$lt", u"$ne"]
 
-
     def get_connection(self):
         """
         Get connection to execute statements.
@@ -50,23 +49,6 @@ class Collection(object):
         """
         connection = self._db_ref.get_engine().connect()
         return connection
-
-    @staticmethod
-    def generate_select_joins(root_table):
-        """
-        Generate the list of relations.
-        Args:
-            root_table (sqlalchemy.sql.schema.Table): The root table we fetch the relations from.
-
-        Returns:
-            (lists of sqlalchemy.sql.schema.Table)
-        """
-        linked_tables = []
-        for column in root_table.columns:
-                linked_tables += [
-                    (column.name, column, foreign_key.column) for foreign_key in column.foreign_keys
-                ]
-        return linked_tables
 
     @staticmethod
     def generate_select_fields_mapping(table, prefix=None):
@@ -103,6 +85,7 @@ class Collection(object):
             (list of sqlalchemy.sql.elements.Label, list of tuples)
         """
         switch_plan = []
+        lookup = lookup or []
 
         fields_mapping = self.generate_select_fields_mapping(self._table)
 
@@ -143,7 +126,6 @@ class Collection(object):
         lookup = []
         for foreign_key in table.foreign_keys:
             as_parts = [foreign_key.parent.name]
-
             if prefix is not None:
                 as_parts = prefix.split(u".") + as_parts
 
@@ -233,9 +215,7 @@ class Collection(object):
             if not do_keep:
                 labels.pop(index)
 
-
         return labels
-
 
     def find(self, query=None, projection=None, lookup=None, auto_lookup=0):
         """

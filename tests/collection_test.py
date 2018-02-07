@@ -5,40 +5,56 @@ Collection class tests
 from pytest import fixture
 from mock import Mock
 from sqlcollection.collection import Collection
-from sqlalchemy.schema import Column
+from sqlcollection.db import DB
+from sqlalchemy.types import Integer, String
+from sqlalchemy.schema import Column, Table, MetaData, ForeignKey
 
 @fixture(scope=u"function")
-def mock_client_table():
-    client_table = Mock()
-    client_table.name = u"client"
+def client_table():
+    client_table = Table(u"client", MetaData(),
+        Column(u"id", Integer()),
+        Column(u"name", String(50))
+    )
     client_table.foreign_keys = []
     return client_table
 
 
 @fixture(scope=u"function")
-def mock_project_table(mock_client_table):
-    project_table = Mock()
-    project_table.name = u"project"
-    client_foreign_key = Mock()
-    client_foreign_key.parent = Mock()
-    client_foreign_key.parent.name = u"client"
-    client_foreign_key.column = Mock()
-    client_foreign_key.column.name = u"id"
-    client_foreign_key.column.table = mock_client_table
+def project_table(client_table):
+    client_column = Column(u"client", MetaData())
+    client_column.foreign_keys = [
+        ForeignKey(client_table.columns[u"id"])
+    ]
 
+    project_table = Table(u"project", MetaData(),
+        Column(u"id", Integer()),
+        Column(u"name", String(50)),
+        client_column
+    )
+
+    client_foreign = ForeignKey(client_table.columns[u"id"])
+    client_foreign.parent = project_table.columns[u"client"]
     project_table.foreign_keys = [
-        client_foreign_key
+        client_foreign
     ]
     return project_table
 
 
 @fixture(scope=u"function")
-def stubbed_collection(mock_project_table):
-    return Collection(db_ref=Mock(), table=mock_project_table)
+def hours_count_db(client_table, project_table):
+    db = DB(u"hours_count")
+    db.client = Collection(db, client_table)
+    db.project = Collection(db, project_table)
+    return db
 
 
-def test_generate_lookup(stubbed_collection, mock_project_table):
-    lookup = stubbed_collection.generate_lookup(mock_project_table, 2, u"test")
+@fixture(scope=u"function")
+def stubbed_collection(hours_count_db, project_table):
+    return Collection(db_ref=hours_count_db, table=project_table)
+
+
+def test_generate_lookup(stubbed_collection, project_table):
+    lookup = stubbed_collection.generate_lookup(project_table, 2, u"test")
     assert len(lookup) == 1
     assert lookup[0][u"to"] == u"project"
     assert lookup[0][u"localField"] == u"client"
@@ -86,7 +102,52 @@ def test__parse_query_recursive_operator(stubbed_collection, mock_project_fields
                 u"id": 3
         }]
     }, fields_mapping=mock_project_fields_mapping)
-    print(str(result))
     assert str(result) == u"id = :id_1 OR id = :id_2"
 
 
+def test_generate_select_fields_mapping(stubbed_collection, project_table, client_table):
+    ret = stubbed_collection.generate_select_fields_mapping(project_table)
+    assert ret == {
+        u"id": project_table.columns[u"id"],
+        u"name": project_table.columns[u"name"],
+        u"client": project_table.columns[u"client"]
+    }
+
+
+def test_generate_select_fields_mapping_with_prefix(stubbed_collection, project_table, client_table):
+    ret = stubbed_collection.generate_select_fields_mapping(project_table, u"prefix")
+    assert ret == {
+        u"prefix.id": project_table.columns[u"id"],
+        u"prefix.name": project_table.columns[u"name"],
+        u"prefix.client": project_table.columns[u"client"]
+    }
+
+
+def test_generate_select_dependencies_no_lookup(stubbed_collection, project_table, client_table):
+    ret = stubbed_collection.generate_select_dependencies()
+    assert ret == ({
+        u"id": project_table.columns[u"id"],
+        u"name": project_table.columns[u"name"],
+        u"client": project_table.columns[u"client"]
+    }, [])
+
+
+def test_generate_select_dependencies(stubbed_collection, project_table, client_table):
+    field_mapping, joins = stubbed_collection.generate_select_dependencies([
+        {
+            u"from": u"client",
+            u"to": u"project",
+            u"foreignField": u"id",
+            u"localField": u"client",
+            u"as": u"client"
+        }
+    ])
+    assert field_mapping == {
+        u'id': project_table.columns[u"id"],
+        u'name': project_table.columns[u"name"],
+        u'client.id': project_table.columns[u"client"],
+        u'client.name': client_table.columns[u"name"]
+    }
+    assert joins == [
+        (client_table, project_table.columns[u"client"], client_table.columns[u"id"])
+    ]
