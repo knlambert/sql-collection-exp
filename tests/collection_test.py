@@ -6,6 +6,7 @@ from pytest import fixture
 from mock import Mock
 from sqlcollection.collection import Collection
 from sqlcollection.db import DB
+from sqlalchemy.sql.expression import Label
 from sqlalchemy.types import Integer, String
 from sqlalchemy.schema import Column, Table, MetaData, ForeignKey
 
@@ -150,4 +151,36 @@ def test_generate_select_dependencies(stubbed_collection, project_table, client_
     }
     assert joins == [
         (client_table, project_table.columns[u"client"], client_table.columns[u"id"])
+    ]
+
+
+def test__apply_projection_keep_one(stubbed_collection, project_table, client_table):
+    labels = [
+        Label(u"id", project_table.columns[u"id"]),
+        Label(u"name", project_table.columns[u"name"]),
+        Label(u"client.id", client_table.columns[u"id"]),
+        Label(u"client.name", client_table.columns[u"name"])
+    ]
+    filtered_labels = stubbed_collection._apply_projection(labels, {
+        u"client": 1
+    })
+
+    assert filtered_labels == [
+        labels[2], labels[3]
+    ]
+
+
+def test__apply_projection_hide_one(stubbed_collection, project_table, client_table):
+    labels = [
+        Label(u"id", project_table.columns[u"id"]),
+        Label(u"name", project_table.columns[u"name"]),
+        Label(u"client.id", client_table.columns[u"id"]),
+        Label(u"client.name", client_table.columns[u"name"])
+    ]
+    filtered_labels = stubbed_collection._apply_projection(labels, {
+        u"client": -1
+    })
+
+    assert filtered_labels == [
+        labels[0], labels[1]
     ]

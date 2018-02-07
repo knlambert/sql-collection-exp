@@ -153,6 +153,17 @@ class Collection(object):
         Returns:
             (sqlalchemy.sql.elements): The elements to generate the WHERE clause.
         """
+        operator_bindings = {
+            u"$eq": u"==",
+            u"$gte": u">=",
+            u"$gt": u">",
+            u"$lte": u"<=",
+            u"$lt": u"<",
+            u"$ne": u"!="
+        }
+        available_simple_operators = [
+            key for key in operator_bindings
+        ]
         conjunction = conjunction or and_
         filters = []
         if not isinstance(query, list):
@@ -168,18 +179,8 @@ class Collection(object):
 
                 elif key in self._operators:
                     column = fields_mapping[parent]
-                    if key == u"$eq":
-                        filters.append(column == value)
-                    elif key == u"$gte":
-                        filters.append(column >= value)
-                    elif key == u"$gt":
-                        filters.append(column > value)
-                    elif key == u"$lt":
-                        filters.append(column < value)
-                    elif key == u"$lte":
-                        filters.append(column <= value)
-                    elif key == u"$ne":
-                        filters.append(column != value)
+                    if key in available_simple_operators:
+                        filters.append(eval(u"column {} value".format(operator_bindings[key])))
 
                 elif key in self._conjunctions and isinstance(value, list):
                     filters.extend([
@@ -202,7 +203,7 @@ class Collection(object):
         projection = json_to_one_level(projection)
         to_keep = [key for key in projection]
         mode = list(projection.items())[0][1]
-
+        labels = list(labels)
         for index, label in reversed(list(enumerate(labels))):
 
             do_keep = False if mode == 1 else True
