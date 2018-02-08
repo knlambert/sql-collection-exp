@@ -14,7 +14,9 @@ class Cursor(object):
         Constructs the object.
         Args:
             collection_ref (Collection): The reference to the collection object.
-            select (sqlalchemy.sql.selectable.Select): The select request to process.
+            fields:
+            joins:
+            where:
             lookup (list of dict): The lookup parameter used in the find query associated.
         """
         self._fields = fields

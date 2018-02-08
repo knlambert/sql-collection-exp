@@ -209,7 +209,7 @@ class Collection(object):
             do_keep = False if mode == 1 else True
 
             for key in to_keep:
-                if key in label.name:
+                if label.name.startswith(key):
                     do_keep = not do_keep
                     break
 
