@@ -4,11 +4,10 @@ Collection class tests
 """
 from pytest import fixture
 from mock import Mock
-from sqlcollection.results import DeleteResult, UpdateResult
-from sqlcollection.collection import Collection
 from sqlcollection.db import DB
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.types import Integer, String
+from sqlcollection.collection import Collection
 from sqlalchemy.schema import Column, Table, MetaData, ForeignKey
 
 

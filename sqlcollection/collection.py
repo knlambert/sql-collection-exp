@@ -218,6 +218,25 @@ class Collection(object):
 
         return labels
 
+    def generate_joins(self, joins):
+        """
+        Generate sql alchemy joins part of the request to select from.
+        Args:
+            joins (list of sqlalchemy.sql.selectable.Join): The generated joins.
+
+        Returns:
+            (sqlalchemy.sql.selectable.Join | sqlalchemy.sql.schema.Table) The object(s) to select from.
+        """
+        acc = None
+        for foreign_table, local_field, foreign_field in joins:
+            if acc is None:
+                acc = self._table.join(foreign_table, local_field == foreign_field)
+            else:
+                acc = acc.join(foreign_table, local_field == foreign_field)
+
+        print(type(acc))
+        return self._table if acc is None else acc
+
     def find(self, query=None, projection=None, lookup=None, auto_lookup=0):
         """
         Does a find query on the collection.
@@ -233,15 +252,8 @@ class Collection(object):
         lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
         fields_mapping, joins = self.generate_select_dependencies(lookup)
 
-        acc = None
+        acc = self.generate_joins(joins)
 
-        for foreign_table, local_field, foreign_field in joins:
-            if acc is None:
-                acc = self._table.join(foreign_table, local_field == foreign_field)
-            else:
-                acc = acc.join(foreign_table, local_field == foreign_field)
-
-        acc = self._table if acc is None else acc
         labels = [column.label(label) for label, column in fields_mapping.items()]
 
         where = None
