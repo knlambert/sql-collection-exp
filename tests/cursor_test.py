@@ -27,8 +27,3 @@ def stubbed_cursor(stubbed_collection, project_client_lookup, client_table, proj
         Label(u"client.id", client_table.columns[u"id"]),
         Label(u"client.name", client_table.columns[u"name"])
     ], joins, where, project_client_lookup)
-
-
-# def test__serialize_count(stubbed_cursor):
-#     result = stubbed_cursor._serialize_count(False)
-#     print(str(result))

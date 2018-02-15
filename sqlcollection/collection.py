@@ -345,3 +345,55 @@ class Collection(object):
         request = self._table.update().values(update_kwargs).where(join_where).where(filters)
         result = self.get_connection().execute(request)
         return UpdateResult(matched_count=result.rowcount)
+
+    def get_description(self, lookup=None, auto_lookup=0, table=None):
+        """
+        Extract table description.
+        Args:
+            lookup (list of dict): The lookup to apply during this query.
+            auto_lookup (int): How many levels of lookup will be generated automatically.
+
+        Returns:
+            (list of dict): Get the table and relation description.
+        """
+        lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
+        fields = []
+        table = self._table if table is None else table
+
+        for column in table.c:
+
+            type_ = None
+            print(type(column.type))
+            quit()
+            db_type = str(column.type)
+            if u"INTEGER" in db_type:
+                type_ = u"integer"
+            elif u"VARCHAR" in db_type or u"TEXT" in db_type:
+                type_ = u"text"
+            elif u"DATETIME" in db_type:
+                type_ = u"timestamp"
+
+            fields.append({
+                u"name": column.name,
+                u"primary_key": column.primary_key,
+                u"required": not column.nullable,
+                u"type": type_
+            })
+
+
+        for look in lookup:
+            if auto_lookup != 0:
+                auto_lookup -= 1
+
+            if look.get(u"to") == table.name:
+
+                for index, field in enumerate(fields):
+                    if field.get(u"name") == look.get(u"localField"):
+                        foreign_table = getattr(self._db_ref, look.get(u"from"))._table
+                        description = self.get_description(lookup, auto_lookup, foreign_table)
+                        fields[index][u"nested_description"] = {
+                            u"fields": description,
+                            u"as": look.get(u"as"),
+                            u"table": foreign_table.name
+                        }
+        return fields
