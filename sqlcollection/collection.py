@@ -3,6 +3,8 @@
 Contains DB Class.
 """
 
+import decimal
+import datetime
 from .cursor import Cursor
 from sqlalchemy.sql import (
     delete,
@@ -12,11 +14,13 @@ from sqlalchemy.sql import (
     and_,
     or_
 )
+
 from .results import (
     DeleteResult,
     UpdateResult,
     InsertResultOne
 )
+
 
 from .utils import json_to_one_level
 
@@ -346,6 +350,27 @@ class Collection(object):
         result = self.get_connection().execute(request)
         return UpdateResult(matched_count=result.rowcount)
 
+    @staticmethod
+    def _python_type_to_string(python_type):
+        """
+        Convert a python type to a string representing the type in a generic way.
+        Args:
+            python_type (type): The python type to convert into a generic string.
+        Returns:
+            (unicode): The translated type.
+        """
+        if python_type is int:
+            type_ = u"integer"
+        elif python_type is decimal.Decimal or python_type in [float, long]:
+            type_ = u"float"
+        elif python_type is datetime.datetime:
+            type_ = u"datetime"
+        elif python_type is datetime.date:
+            type_ = u"date"
+        else:
+            type_ = u"string"
+        return type_
+
     def get_description(self, lookup=None, auto_lookup=0, table=None):
         """
         Extract table description.
@@ -362,24 +387,12 @@ class Collection(object):
 
         for column in table.c:
 
-            type_ = None
-            print(type(column.type))
-            quit()
-            db_type = str(column.type)
-            if u"INTEGER" in db_type:
-                type_ = u"integer"
-            elif u"VARCHAR" in db_type or u"TEXT" in db_type:
-                type_ = u"text"
-            elif u"DATETIME" in db_type:
-                type_ = u"timestamp"
-
             fields.append({
                 u"name": column.name,
                 u"primary_key": column.primary_key,
                 u"required": not column.nullable,
-                u"type": type_
+                u"type": self._python_type_to_string(column.type.python_type)
             })
-
 
         for look in lookup:
             if auto_lookup != 0:
