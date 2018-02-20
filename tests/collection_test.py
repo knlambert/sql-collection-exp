@@ -2,6 +2,7 @@
 """
 Collection class tests
 """
+import datetime
 from pytest import fixture
 from mock import Mock
 from sqlcollection.db import DB
@@ -276,3 +277,13 @@ def test_insert_one(stubbed_collection, project_client_lookup):
                u"VALUES (:name, :client)")
 
     assert insert_one_result.inserted_id == 42
+
+
+def test__python_type_to_string(stubbed_collection):
+    assert stubbed_collection._python_type_to_string(int) == u"integer"
+    assert stubbed_collection._python_type_to_string(float) == u"float"
+    assert stubbed_collection._python_type_to_string(long) == u"float"
+    assert stubbed_collection._python_type_to_string(datetime.datetime) == u"datetime"
+    assert stubbed_collection._python_type_to_string(datetime.date) == u"date"
+    assert stubbed_collection._python_type_to_string(unicode) == u"string"
+
