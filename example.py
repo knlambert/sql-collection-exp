@@ -30,15 +30,12 @@ hour = client.hours_count.hour
 
 description = hour.get_description(auto_lookup=3)
 
-print(json.dumps(description, indent=4))
 
-
-# cursor = hour.find(auto_lookup=1, projection={
-#     u"project": -1,
-#     u"affected_to.id": -1
-# }).limit(4)
-# for item in cursor:
-#     print(item)
+cursor = hour.find(query={u"project.id": {
+    u"$ne": 2
+}}, auto_lookup=0).sort(u"project.id").limit(1).skip(0)
+for item in cursor:
+    print(item)
 #
 # print(u"___count")
 # count = hour.find(auto_lookup=0).limit(3).count()

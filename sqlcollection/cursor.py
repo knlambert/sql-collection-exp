@@ -61,7 +61,9 @@ class Cursor(object):
         Returns:
             (sqlalchemy.sql.selectable.Select): A SQLAlchemy representation of the select request.
         """
-        request = self._joins
+
+        request = select(labels or self._fields).select_from(self._joins)
+
 
         if self._where is not None:
             request = request.where(self._where)
@@ -69,7 +71,7 @@ class Cursor(object):
         if self._order_by is not None:
             request = request.order_by(*self._order_by)
 
-        request = select(labels or self._fields).select_from(request)
+
 
         if self._offset is not None and add_limit_and_skip:
             request = request.offset(self._offset)
