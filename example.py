@@ -29,7 +29,7 @@ client = Client(url=u'mysql://root:localroot1234@127.0.0.1/')
 hour = client.hours_count.hour
 
 description = hour.get_description(auto_lookup=3)
-
+print(json.dumps(description, indent=4))
 
 cursor = hour.find(query={u"project.id": {
     u"$ne": 2

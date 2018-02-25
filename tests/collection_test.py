@@ -261,7 +261,7 @@ def test_update_many(stubbed_collection, project_client_lookup):
 
 def test_insert_one(stubbed_collection, project_client_lookup):
     insert_one_result = Mock()
-    insert_one_result.inserted_primary_key = 42
+    insert_one_result.inserted_primary_key = [42]
     add_connection_execute_mock(stubbed_collection, insert_one_result)
 
     insert_one_result = stubbed_collection.insert_one({
