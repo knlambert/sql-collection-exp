@@ -371,12 +371,14 @@ class Collection(object):
             type_ = u"string"
         return type_
 
-    def get_description(self, lookup=None, auto_lookup=0, table=None):
+    def get_description(self, lookup=None, auto_lookup=0, table=None, join_as=None):
         """
         Extract table description.
         Args:
             lookup (list of dict): The lookup to apply during this query.
             auto_lookup (int): How many levels of lookup will be generated automatically.
+            table (sqlalchemy.sql.schema.Table): The table we want the description from.
+            join_as (unicode): The parent alias.
 
         Returns:
             (list of dict): Get the table and relation description.
@@ -403,11 +405,11 @@ class Collection(object):
                 for index, field in enumerate(fields):
                     if field.get(u"name") == look.get(u"localField"):
                         foreign_table = getattr(self._db_ref, look.get(u"from"))._table
-                        description = self.get_description(lookup, auto_lookup, foreign_table)
+                        description = self.get_description(lookup, auto_lookup, foreign_table, join_as=look.get(u"as"))
                         fields[index][u"nested_description"] = description
 
         return {
             u"fields": fields,
-            u"as": table.name,
+            u"as": join_as or table.name,
             u"table": table.name
         }
