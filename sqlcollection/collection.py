@@ -340,10 +340,11 @@ class Collection(object):
         )
 
         update_kwargs = {}
-        for key in update[u"$set"]:
+        set_ = json_to_one_level(update[u"$set"])
+        for key in set_:
             column = fields_mapping.get(key)
             if column is not None:
-                update_kwargs[column] = update[u"$set"][key]
+                update_kwargs[column] = set_[key]
 
         request = self._table.update().values(update_kwargs).where(join_where).where(filters)
         result = self.get_connection().execute(request)

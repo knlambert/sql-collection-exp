@@ -63,11 +63,13 @@ print(ret.inserted_id)
 # #     u"project.id": 2
 # # }, auto_lookup=3)
 #
-# ret = hour.update_many({
-#     u"project.id": 2
-# }, {
-#     u"$set": {
-#         u"issue": u"updated",
-#         u"project.client.name": u"BNC2"
-#     }
-# }, auto_lookup=3)
+ret = hour.update_many({
+    u"project.id": 2
+}, {
+    u"$set": {
+        u"issue": u"updated",
+        u"project": {
+            u"id": 1
+        }
+    }
+}, auto_lookup=3)
