@@ -238,7 +238,6 @@ class Collection(object):
             else:
                 acc = acc.join(foreign_table, local_field == foreign_field)
 
-        print(type(acc))
         return self._table if acc is None else acc
 
     def find(self, query=None, projection=None, lookup=None, auto_lookup=0):
@@ -317,7 +316,7 @@ class Collection(object):
 
         request = self._table.insert().values(**insert_kwargs)
         result = self.get_connection().execute(request)
-        return InsertResultOne(inserted_id=result.inserted_primary_key)
+        return InsertResultOne(inserted_id=result.inserted_primary_key[0])
 
     def update_many(self, filter, update, lookup=None, auto_lookup=0):
         """

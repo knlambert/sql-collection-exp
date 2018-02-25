@@ -46,18 +46,18 @@ for item in cursor:
 # print(count)
 # quit()
 #
-# ret = hour.insert_one({
-#         u'issue': '',
-#         u'affected_to': {
-#             u"id": 1
-#         },
-#         u'project': {
-#             u"id": 2
-#         },
-#         u'started_at': datetime.datetime(2017, 12, 18, 14, 0),
-#         u'minutes': 333
-# }, auto_lookup=1)
-# print(ret.inserted_id)
+ret = hour.insert_one({
+        u'issue': '',
+        u'affected_to': {
+            u"id": 1
+        },
+        u'project': {
+            u"id": 2
+        },
+        u'started_at': datetime.datetime(2017, 12, 18, 14, 0),
+        u'minutes': 333
+}, auto_lookup=1)
+print(ret.inserted_id)
 # #
 # # ret = hour.delete_many({
 # #     u"project.id": 2
