@@ -51,7 +51,7 @@ class DB(object):
         schema.
         """
         meta = MetaData()
-        meta.reflect(bind=self.get_engine(), views=True)
+        meta.reflect(bind=self.get_engine(), views=False)
         for key in meta.tables:
             root_table = meta.tables[key]
             setattr(self, key, Collection(

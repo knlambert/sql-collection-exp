@@ -3,6 +3,7 @@
 Contains DB Class.
 """
 
+import json
 import decimal
 import datetime
 from .cursor import Cursor
@@ -78,72 +79,6 @@ class Collection(object):
             fields_mapping[label] = column
 
         return fields_mapping
-
-    def generate_select_dependencies(self, lookup=None):
-        """
-        Generate the fields for the select request.
-        Args:
-            lookup (list of dict): The lookup to apply during this query.
-
-        Returns:
-            (list of sqlalchemy.sql.elements.Label, list of tuples)
-        """
-        switch_plan = []
-        lookup = lookup or []
-
-        fields_mapping = self.generate_select_fields_mapping(self._table)
-
-        joins = []
-        for relation in lookup:
-
-            from_table = getattr(self._db_ref, relation[u"from"])._table
-            to_table = getattr(self._db_ref, relation[u"to"])._table
-
-            from_column = getattr(from_table.c, relation[u"foreignField"])
-            to_column = getattr(to_table.c, relation[u"localField"])
-            joins.append((from_table, to_column, from_column))
-
-            switch_plan.append((from_column, to_column))
-
-            fields_mapping.update(self.generate_select_fields_mapping(from_table, relation[u"as"]))
-
-        for from_column, to_column in switch_plan:
-            for key, column in fields_mapping.items():
-                if column.table.name == from_column.table.name and column.name == from_column.name:
-                    fields_mapping[key] = to_column
-                elif column.table.name == to_column.table.name and column.name == to_column.name:
-                    del fields_mapping[key]
-
-        return fields_mapping, joins
-
-    def generate_lookup(self, table, deep, prefix=None):
-        """
-        Generate the lookup automatically
-        Args:
-            table (sqlalchemy.sql.schema.Table): The table where to generate the lookup.
-            deep (int): Defines how deep the lookup generated is.
-            prefix (unicode): Optional prefix for the lookup.
-
-        Returns:
-            (list of dict): The generated lookup.
-        """
-        lookup = []
-        for foreign_key in table.foreign_keys:
-            as_parts = [foreign_key.parent.name]
-            if prefix is not None:
-                as_parts = prefix.split(u".") + as_parts
-
-            lookup.append({
-                u"to": table.name,
-                u"localField": foreign_key.parent.name,
-                u"from": foreign_key.column.table.name,
-                u"foreignField": foreign_key.column.name,
-                u"as": u".".join(as_parts)
-            })
-            if deep > 1:
-                lookup.extend(self.generate_lookup(foreign_key.column.table, deep-1, u".".join(as_parts)))
-
-        return lookup
 
     def _parse_query(self, query, fields_mapping, parent=None, conjunction=None):
         """
@@ -240,6 +175,83 @@ class Collection(object):
 
         return self._table if acc is None else acc
 
+    def generate_select_dependencies(self, lookup=None):
+        """
+        Generate the fields for the select request.
+        Args:
+            lookup (list of dict): The lookup to apply during this query.
+
+        Returns:
+            (list of sqlalchemy.sql.elements.Label, list of tuples)
+        """
+        switch_plan = []
+        lookup = lookup or []
+        cache = {}
+        fields_mapping = self.generate_select_fields_mapping(self._table)
+        cache[self._table.name] = self._table.alias(self._table.name)
+
+        joins = []
+        print(lookup)
+        for relation in lookup:
+
+            print(relation)
+            to_table = cache[relation[u"to"]]
+
+            from_table = getattr(self._db_ref, relation[u"from"])._table.alias(relation[u"as"])
+            if relation[u"as"] not in cache:
+                cache[relation[u"as"]] = from_table
+
+            print(type(from_table))
+            print(from_table.name)
+            print(type(to_table))
+            print(to_table.name)
+
+            from_column = getattr(from_table.c, relation[u"foreignField"])
+            to_column = getattr(to_table.c, relation[u"localField"])
+            joins.append((from_table, to_column, from_column))
+
+            switch_plan.append((from_column, to_column))
+
+            fields_mapping.update(self.generate_select_fields_mapping(from_table, relation[u"as"]))
+
+        for from_column, to_column in switch_plan:
+            for key, column in fields_mapping.items():
+                if column.table.name == from_column.table.name and column.name == from_column.name:
+                    fields_mapping[key] = to_column
+                elif column.table.name == to_column.table.name and column.name == to_column.name:
+                    del fields_mapping[key]
+
+        return fields_mapping, joins
+
+    def generate_lookup(self, table, deep, prefix=None):
+        """
+        Generate the lookup automatically
+        Args:
+            table (sqlalchemy.sql.schema.Table): The table where to generate the lookup.
+            deep (int): Defines how deep the lookup generated is.
+            prefix (unicode): Optional prefix for the lookup.
+
+        Returns:
+            (list of dict): The generated lookup.
+        """
+        lookup = []
+        for foreign_key in table.foreign_keys:
+            as_parts = [foreign_key.parent.name]
+            if prefix is not None:
+                as_parts = prefix.split(u".") + as_parts
+
+            lookup.append({
+                u"to": table.name if prefix is None else prefix,
+                u"localField": foreign_key.parent.name,
+                u"from": foreign_key.column.table.name,
+                u"foreignField": foreign_key.column.name,
+                u"as": u".".join(as_parts)
+            })
+            if deep > 1:
+                lookup.extend(self.generate_lookup(foreign_key.column.table, deep-1, u".".join(as_parts)))
+
+        return lookup
+
     def find(self, query=None, projection=None, lookup=None, auto_lookup=0):
         """
         Does a find query on the collection.
@@ -253,10 +265,12 @@ class Collection(object):
             (Cursor): Cursor to wrap the request result.
         """
         lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
+        print(json.dumps(lookup, indent=4))
         fields_mapping, joins = self.generate_select_dependencies(lookup)
 
         acc = self.generate_joins(joins)
 
+        print(acc)
         labels = [column.label(label) for label, column in fields_mapping.items()]
 
         where = None
@@ -282,6 +296,7 @@ class Collection(object):
         lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
         fields_mapping, joins = self.generate_select_dependencies(lookup)
         filters = self._parse_query(filter, fields_mapping)
+
         if str(filters) == u"":
             raise ValueError(u"Filter parameter is missing.")
 
