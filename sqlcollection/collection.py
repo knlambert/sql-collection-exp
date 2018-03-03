@@ -8,14 +8,10 @@ import decimal
 import datetime
 from .cursor import Cursor
 from sqlalchemy.sql import (
-    delete,
-    update,
-    func,
-    select,
     and_,
     or_
 )
-
+import sqlalchemy.sql.expression
 from .results import (
     DeleteResult,
     UpdateResult,
@@ -188,23 +184,16 @@ class Collection(object):
         lookup = lookup or []
         cache = {}
         fields_mapping = self.generate_select_fields_mapping(self._table)
-        cache[self._table.name] = self._table.alias(self._table.name)
+        cache[self._table.name] = self._table #.alias(self._table.name)
 
         joins = []
-        print(lookup)
         for relation in lookup:
 
-            print(relation)
             to_table = cache[relation[u"to"]]
 
             from_table = getattr(self._db_ref, relation[u"from"])._table.alias(relation[u"as"])
             if relation[u"as"] not in cache:
                 cache[relation[u"as"]] = from_table
-
-            print(type(from_table))
-            print(from_table.name)
-            print(type(to_table))
-            print(to_table.name)
 
             from_column = getattr(from_table.c, relation[u"foreignField"])
             to_column = getattr(to_table.c, relation[u"localField"])
@@ -265,12 +254,11 @@ class Collection(object):
             (Cursor): Cursor to wrap the request result.
         """
         lookup = (lookup or []) if auto_lookup == 0 else self.generate_lookup(self._table, auto_lookup)
-        print(json.dumps(lookup, indent=4))
+
         fields_mapping, joins = self.generate_select_dependencies(lookup)
 
         acc = self.generate_joins(joins)
 
-        print(acc)
         labels = [column.label(label) for label, column in fields_mapping.items()]
 
         where = None

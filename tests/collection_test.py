@@ -6,7 +6,7 @@ import datetime
 from pytest import fixture
 from mock import Mock
 from sqlcollection.db import DB
-from sqlalchemy.sql.expression import Label
+from sqlalchemy.sql.expression import Label, Alias
 from sqlalchemy.types import Integer, String
 from sqlcollection.collection import Collection
 from sqlalchemy.schema import Column, Table, MetaData, ForeignKey
@@ -80,7 +80,7 @@ def project_client_lookup():
 def test_generate_lookup(stubbed_collection, project_table):
     lookup = stubbed_collection.generate_lookup(project_table, 2, u"test")
     assert len(lookup) == 1
-    assert lookup[0][u"to"] == u"project"
+    assert lookup[0][u"to"] == u"test"
     assert lookup[0][u"localField"] == u"client"
     assert lookup[0][u"from"] == u"client"
     assert lookup[0][u"foreignField"] == u"id"
@@ -162,15 +162,25 @@ def test_generate_select_dependencies(
         client_table,
         project_client_lookup):
     field_mapping, joins = stubbed_collection.generate_select_dependencies(project_client_lookup)
-    assert field_mapping == {
-        u'id': project_table.columns[u"id"],
-        u'name': project_table.columns[u"name"],
-        u'client.id': project_table.columns[u"client"],
-        u'client.name': client_table.columns[u"name"]
-    }
-    assert joins == [
-        (client_table, project_table.columns[u"client"], client_table.columns[u"id"])
-    ]
+
+    assert field_mapping[u'id'] == project_table.columns[u"id"]
+    assert field_mapping[u'name'] == project_table.columns[u"name"]
+    assert field_mapping[u'client.id'] == project_table.columns[u"client"]
+    assert field_mapping[u'client.name'].name == client_table.columns[u"name"].name
+    assert isinstance(field_mapping[u'client.name'], Column)
+    #     u'name': project_table.columns[u"name"],
+    #     u'client.id': project_table.columns[u"client"],
+    #     u'client.name': client_table.columns[u"name"]
+    # }
+    assert joins[0][0].name == u"client"
+    assert isinstance(joins[0][0], Alias)
+    assert isinstance(joins[0][1], Column)
+    assert joins[0][1].name == u"client"
+    assert joins[0][1].table.name == u"project"
+    assert isinstance(joins[0][2], Column)
+    assert joins[0][2].name == u"id"
+    assert joins[0][2].table.name == u"client"
+
 
 
 def test__apply_projection_keep_one(stubbed_collection, project_table, client_table):
@@ -215,7 +225,7 @@ def test_find(stubbed_collection, project_table, project_client_lookup):
 
     assert isinstance(cursor._fields[0], Label)
     assert cursor._fields[0].name == u"name"
-    assert str(cursor._joins) == u"project JOIN client ON project.client = client.id"
+    assert str(cursor._joins) == u"project JOIN client AS client ON project.client = client.id"
     assert str(cursor._where) == u"project.id != :id_1"
     assert cursor._lookup == project_client_lookup
 
@@ -231,7 +241,7 @@ def test_delete_many(stubbed_collection, project_client_lookup):
         }
     }, lookup=project_client_lookup)
     assert ((str(stubbed_collection.get_connection().execute.call_args[0][0]))
-            == u"DELETE FROM project , client WHERE project.client = "
+            == u"DELETE FROM project , client AS client WHERE project.client = "
                u"client.id AND project.id != :id_1")
 
     assert delete_result.deleted_count == 42
@@ -253,7 +263,7 @@ def test_update_many(stubbed_collection, project_client_lookup):
     }, project_client_lookup)
 
     assert ((str(stubbed_collection.get_connection().execute.call_args[0][0]))
-            == u"UPDATE project SET name=:name FROM client " \
+            == u"UPDATE project SET name=:name FROM client AS client " \
                u"WHERE project.client = client.id AND project.id != :id_1")
 
     assert update_result.matched_count == 42
