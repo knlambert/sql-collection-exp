@@ -166,12 +166,8 @@ def test_generate_select_dependencies(
     assert field_mapping[u'id'] == project_table.columns[u"id"]
     assert field_mapping[u'name'] == project_table.columns[u"name"]
     assert field_mapping[u'client.id'] == project_table.columns[u"client"]
-    assert field_mapping[u'client.name'].name == client_table.columns[u"name"].name
+    assert field_mapping[u'client.name'].name == client_table.columns[u"name"].namegi
     assert isinstance(field_mapping[u'client.name'], Column)
-    #     u'name': project_table.columns[u"name"],
-    #     u'client.id': project_table.columns[u"client"],
-    #     u'client.name': client_table.columns[u"name"]
-    # }
     assert joins[0][0].name == u"client"
     assert isinstance(joins[0][0], Alias)
     assert isinstance(joins[0][1], Column)
