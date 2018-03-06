@@ -417,6 +417,6 @@ class Collection(object):
 
         return {
             u"fields": fields,
-            u"as": join_as or table.name,
-            u"table": table.name
+            u"as": join_as or table.name.decode(u"utf8"),
+            u"table": table.name.decode(u"utf8")
         }
