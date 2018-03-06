@@ -393,7 +393,7 @@ class Collection(object):
         for column in table.c:
 
             field = {
-                u"name": column.name,
+                u"name": column.name.decode(u"utf8"),
                 u"primary_key": column.primary_key,
                 u"nullable": column.nullable,
                 u"type": self._python_type_to_string(column.type.python_type)
