@@ -395,7 +395,7 @@ class Collection(object):
             field = {
                 u"name": column.name,
                 u"primary_key": column.primary_key,
-                u"required": not column.nullable,
+                u"nullable": column.nullable,
                 u"type": self._python_type_to_string(column.type.python_type)
             }
             if field[u"type"] == u"integer":
