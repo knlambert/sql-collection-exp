@@ -392,12 +392,16 @@ class Collection(object):
 
         for column in table.c:
 
-            fields.append({
+            field = {
                 u"name": column.name,
                 u"primary_key": column.primary_key,
                 u"required": not column.nullable,
                 u"type": self._python_type_to_string(column.type.python_type)
-            })
+            }
+            if field[u"type"] == u"integer":
+                field[u"autoincrement"] = column.autoincrement
+
+            fields.append(field)
 
         for look in lookup:
             if auto_lookup != 0:
