@@ -413,8 +413,9 @@ class Collection(object):
                     if field.get(u"name") == look.get(u"localField"):
                         foreign_table = getattr(self._db_ref, look.get(u"from"))._table
                         description = self.get_description(lookup, auto_lookup, foreign_table, join_as=look.get(u"as"))
+                        description[u"foreignField"] = look.get(u"foreignField")
                         fields[index][u"nested_description"] = description
-                        fields[index][u"foreignField"] = look.get(u"foreignField")
+
 
         return {
             u"fields": fields,
