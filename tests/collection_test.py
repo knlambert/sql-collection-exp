@@ -196,7 +196,6 @@ def test_generate_select_dependencies(
     assert joins[0][2].table.name == u"client"
 
 
-
 def test__apply_projection_keep_one(stubbed_collection, project_table, client_table):
     labels = [
         Label(u"id", project_table.columns[u"id"]),
@@ -310,4 +309,3 @@ def test__python_type_to_string(stubbed_collection):
     assert stubbed_collection._python_type_to_string(datetime.datetime) == u"datetime"
     assert stubbed_collection._python_type_to_string(datetime.date) == u"date"
     assert stubbed_collection._python_type_to_string(unicode) == u"string"
-
