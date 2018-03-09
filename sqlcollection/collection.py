@@ -40,7 +40,19 @@ class Collection(object):
             u"$or": or_,
             u"$and": and_
         }
-        self._operators = [u"$eq", u"$gte", u"$gt", u"$lte", u"$lt", u"$ne"]
+        self._builtin_operators = {
+            u"$eq": u"__eq__",
+            u"$gte": u"__ge__",
+            u"$gt": u"__gt__",
+            u"$lte": u"__le__",
+            u"$lt": u"__lt__",
+            u"$ne": u"__ne__",
+            u"$like": u"like"
+        }
+
+        self._special_operators = {
+            u"$regex": u"REGEXP"
+        }
 
     def get_connection(self):
         """
@@ -88,17 +100,6 @@ class Collection(object):
         Returns:
             (sqlalchemy.sql.elements): The elements to generate the WHERE clause.
         """
-        operator_bindings = {
-            u"$eq": u"==",
-            u"$gte": u">=",
-            u"$gt": u">",
-            u"$lte": u"<=",
-            u"$lt": u"<",
-            u"$ne": u"!="
-        }
-        available_simple_operators = [
-            key for key in operator_bindings
-        ]
         conjunction = conjunction or and_
         filters = []
         if not isinstance(query, list):
@@ -112,10 +113,12 @@ class Collection(object):
                     else:
                         filters.append(fields_mapping[key] == value)
 
-                elif key in self._operators:
+                elif key in self._builtin_operators:
                     column = fields_mapping[parent]
-                    if key in available_simple_operators:
-                        filters.append(eval(u"column {} value".format(operator_bindings[key])))
+                    filters.append(getattr(column, self._builtin_operators[key])(value))
+                elif key in self._special_operators:
+                    column = fields_mapping[parent]
+                    filters.append(column.op(self._special_operators[key])(value))
 
                 elif key in self._conjunctions and isinstance(value, list):
                     filters.extend([
@@ -415,7 +418,6 @@ class Collection(object):
                         description = self.get_description(lookup, auto_lookup, foreign_table, join_as=look.get(u"as"))
                         description[u"foreignField"] = look.get(u"foreignField")
                         fields[index][u"nested_description"] = description
-
 
         return {
             u"fields": fields,

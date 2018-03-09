@@ -108,6 +108,24 @@ def test__parse_query_basic(stubbed_collection, mock_project_fields_mapping):
     assert str(result) == u"id = :id_1 AND name = :name_1"
 
 
+def test__parse_query_like(stubbed_collection, mock_project_fields_mapping):
+    result = stubbed_collection._parse_query({
+        u"name": {
+            u"$like": u"%pouet%"
+        }
+    }, fields_mapping=mock_project_fields_mapping)
+    assert str(result) == u"name LIKE :name_1"
+
+
+def test__parse_query_regex(stubbed_collection, mock_project_fields_mapping):
+    result = stubbed_collection._parse_query({
+        u"name": {
+            u"$regex": u".*Yeah.*"
+        }
+    }, fields_mapping=mock_project_fields_mapping)
+    assert str(result) == u"name REGEXP :name_1"
+
+
 def test__parse_query_operators(stubbed_collection, mock_project_fields_mapping):
     result = stubbed_collection._parse_query({
         u"id": {
