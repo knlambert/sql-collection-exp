@@ -18,7 +18,6 @@ from .results import (
     InsertResultOne
 )
 
-
 from .utils import json_to_one_level
 
 
@@ -26,6 +25,7 @@ class Collection(object):
     """
     Wrapper around a collection.
     """
+
     def __init__(self, db_ref, table):
         """
         Construct the object.
@@ -106,18 +106,25 @@ class Collection(object):
             query = [query]
 
         for filt in query:
+
             for key, value in filt.items():
+
                 if key in fields_mapping:
+                    column = fields_mapping[key]
                     if isinstance(value, dict):
                         filters += [self._parse_query(value, fields_mapping, parent=key)]
                     else:
+                        value = self._convert_to_python_type(value, column)
                         filters.append(fields_mapping[key] == value)
 
                 elif key in self._builtin_operators:
                     column = fields_mapping[parent]
+                    value = self._convert_to_python_type(value, column)
                     filters.append(getattr(column, self._builtin_operators[key])(value))
+
                 elif key in self._special_operators:
                     column = fields_mapping[parent]
+                    value = self._convert_to_python_type(value, column)
                     filters.append(column.op(self._special_operators[key])(value))
 
                 elif key in self._conjunctions and isinstance(value, list):
@@ -126,6 +133,23 @@ class Collection(object):
                     ])
 
         return conjunction(*filters)
+
+    def _convert_to_python_type(self, value, column):
+        """
+
+        Args:
+            value: 
+            column: 
+
+        Returns:
+
+        """
+        if type(value) is int and column.type.python_type in [datetime.date, datetime.datetime]:
+            value = datetime.datetime.fromtimestamp(
+                int(value)
+            )
+
+        return value
 
     def _apply_projection(self, labels, projection):
         """
@@ -187,7 +211,7 @@ class Collection(object):
         lookup = lookup or []
         cache = {}
         fields_mapping = self.generate_select_fields_mapping(self._table)
-        cache[self._table.name] = self._table #.alias(self._table.name)
+        cache[self._table.name] = self._table  # .alias(self._table.name)
 
         joins = []
         for relation in lookup:
@@ -240,7 +264,7 @@ class Collection(object):
                 u"as": u".".join(as_parts)
             })
             if deep > 1:
-                lookup.extend(self.generate_lookup(foreign_key.column.table, deep-1, u".".join(as_parts)))
+                lookup.extend(self.generate_lookup(foreign_key.column.table, deep - 1, u".".join(as_parts)))
 
         return lookup
 
