@@ -1,7 +1,14 @@
 langage: python
+
 python:
   - "2.7"
+
 install:
   - pip install -r requirements.txt --user
+  - pip install codecov --user
+
 script:
   - python2 -m pytest tests/ --cov sqlcollection/
+
+after_success:
+  - codecov
