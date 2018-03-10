@@ -5,10 +5,7 @@ python:
 
 install:
   - pip install -r requirements.txt --user
-  - pip install codecov --user
 
 script:
   - python2 -m pytest tests/ --cov sqlcollection/
 
-after_script:
-  - bash < (curl -s https://codecov.io/bash)

@@ -90,13 +90,15 @@ def test_generate_lookup(stubbed_collection, project_table):
 @fixture(scope=u"function")
 def mock_project_fields_mapping():
     fields = [
-        u"id", u"name"
+        (u"id", Integer()), (u"name", String(50))
     ]
     mock_project_fields_mapping = {}
-    for key in fields:
+    for key, type_ in fields:
         mock_project_fields_mapping[key] = Column(
-            name=key
+            name=key,
+            type_=type_
         )
+
     return mock_project_fields_mapping
 
 
