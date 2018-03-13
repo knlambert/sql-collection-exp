@@ -7,7 +7,7 @@ from pytest import fixture
 from mock import Mock
 from sqlcollection.db import DB
 from sqlalchemy.sql.expression import Label, Alias
-from sqlalchemy.types import Integer, String
+from sqlalchemy.types import Integer, String, DateTime
 from sqlcollection.collection import Collection
 from sqlalchemy.schema import Column, Table, MetaData, ForeignKey
 
@@ -311,3 +311,14 @@ def test__python_type_to_string(stubbed_collection):
     assert stubbed_collection._python_type_to_string(datetime.datetime) == u"datetime"
     assert stubbed_collection._python_type_to_string(datetime.date) == u"date"
     assert stubbed_collection._python_type_to_string(unicode) == u"string"
+
+
+def test__convert_to_python_type(stubbed_collection):
+    date_col = Column(u"name", DateTime)
+    value = u"2017-01-01 00:00:00"
+    assert (
+        stubbed_collection._convert_to_python_type(value, date_col) == datetime.datetime(
+            2017, 1, 1, 0, 0, 0
+        )
+    )
+

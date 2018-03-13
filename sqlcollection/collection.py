@@ -134,20 +134,25 @@ class Collection(object):
 
         return conjunction(*filters)
 
-    def _convert_to_python_type(self, value, column):
+    @staticmethod
+    def _convert_to_python_type(value, column):
         """
-
+        Convert values into python types regarding the column.
         Args:
-            value: 
-            column: 
+            value (object): The value to convert.
+            column (Column): The corresponding column.
 
         Returns:
-
+            (object): The converted value.
         """
-        if type(value) is int and column.type.python_type in [datetime.date, datetime.datetime]:
-            value = datetime.datetime.fromtimestamp(
-                int(value)
-            )
+        if column.type.python_type in [datetime.date, datetime.datetime]:
+            if type(value) is int:
+                value = datetime.datetime.fromtimestamp(
+                    int(value)
+                )
+
+            elif type(value) is unicode:
+                value = datetime.datetime.strptime(value, u"%Y-%m-%d %H:%M:%S")
 
         return value
 
