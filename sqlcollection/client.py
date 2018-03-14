@@ -3,6 +3,7 @@
 Contains the Client class.
 """
 
+import re
 from .db import DB
 from sqlalchemy import (
     create_engine,
@@ -54,9 +55,31 @@ class Client(object):
         """
         return create_engine(self._url)
 
+    def adapt_url(self, schema_name):
+        """
+        Adapt the url to connect to the right database.
+        Args:
+            schema_name (unicode): The name of the DB to inject in the url.
+
+        Returns:
+            (unicode): The modified url.
+        """
+        url = self._url
+
+        if u"cloudsql" in self._url:
+            regex = u"(\S+)\/([^\/]+)(\?.+\/cloudsql\/.+)"
+            m = re.search(regex, self._url)
+            groups = list(m.groups())
+            groups[1] = schema_name
+            url = u"{}/{}/{}".format(*groups)
+
+        else:
+            url = u"{}/{}".format(self._url.rstrip(u"/"), schema_name)
+        return url
+
     def discover_databases(self):
         schema_names = inspect(self.get_engine()).get_schema_names()
         for schema_name in schema_names:
             setattr(self, schema_name, DB(
-                url=u"{}/{}".format(self._url.rstrip(u"/"), schema_name)
+                url=self.adapt_url(schema_name)
             ))
