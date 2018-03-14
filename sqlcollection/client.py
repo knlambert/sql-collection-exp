@@ -71,7 +71,7 @@ class Client(object):
             m = re.search(regex, self._url)
             groups = list(m.groups())
             groups[1] = schema_name
-            url = u"{}/{}/{}".format(*groups)
+            url = u"{}/{}{}".format(*groups)
 
         else:
             url = u"{}/{}".format(self._url.rstrip(u"/"), schema_name)
