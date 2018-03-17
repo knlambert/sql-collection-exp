@@ -2,8 +2,7 @@
 """
 Contains DB Class.
 """
-
-import json
+import sys
 import decimal
 import datetime
 from .cursor import Cursor
@@ -11,7 +10,6 @@ from sqlalchemy.sql import (
     and_,
     or_
 )
-import sqlalchemy.sql.expression
 from .results import (
     DeleteResult,
     UpdateResult,
@@ -19,6 +17,7 @@ from .results import (
 )
 
 from .utils import json_to_one_level
+from .compatibility import UNICODE_TYPE
 
 
 class Collection(object):
@@ -134,8 +133,7 @@ class Collection(object):
 
         return conjunction(*filters)
 
-    @staticmethod
-    def _convert_to_python_type(value, column):
+    def _convert_to_python_type(self, value, column):
         """
         Convert values into python types regarding the column.
         Args:
@@ -151,7 +149,7 @@ class Collection(object):
                     int(value)
                 )
 
-            elif type(value) is unicode:
+            elif type(value) is UNICODE_TYPE:
                 value = datetime.datetime.strptime(value, u"%Y-%m-%d %H:%M:%S")
 
         return value
@@ -236,7 +234,7 @@ class Collection(object):
             fields_mapping.update(self.generate_select_fields_mapping(from_table, relation[u"as"]))
 
         for from_column, to_column in switch_plan:
-            for key, column in fields_mapping.items():
+            for key, column in list(fields_mapping.items()):
                 if column.table.name == from_column.table.name and column.name == from_column.name:
                     fields_mapping[key] = to_column
                 elif column.table.name == to_column.table.name and column.name == to_column.name:
@@ -394,9 +392,13 @@ class Collection(object):
         Returns:
             (unicode): The translated type.
         """
-        if python_type is int:
+        int_types = [int]
+        if sys.version_info[0] < 3:
+            int_types.append(long)
+
+        if python_type in int_types:
             type_ = u"integer"
-        elif python_type is decimal.Decimal or python_type in [float, long]:
+        elif python_type in [decimal.Decimal, float]:
             type_ = u"float"
         elif python_type is datetime.datetime:
             type_ = u"datetime"

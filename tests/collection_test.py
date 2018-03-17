@@ -2,15 +2,17 @@
 """
 Collection class tests
 """
+import sys
 import datetime
 from pytest import fixture
 from mock import Mock
 from sqlcollection.db import DB
-from sqlalchemy.sql.expression import Label, Alias
-from sqlalchemy.types import Integer, String, DateTime
+from collections import OrderedDict
 from sqlcollection.collection import Collection
+from sqlalchemy.sql.expression import Label, Alias
+from sqlcollection.compatibility import UNICODE_TYPE
+from sqlalchemy.types import Integer, String, DateTime
 from sqlalchemy.schema import Column, Table, MetaData, ForeignKey
-
 
 @fixture(scope=u"function")
 def client_table():
@@ -103,11 +105,10 @@ def mock_project_fields_mapping():
 
 
 def test__parse_query_basic(stubbed_collection, mock_project_fields_mapping):
-    result = stubbed_collection._parse_query({
-        u"id": 5,
-        u"name": u"test"
-    }, fields_mapping=mock_project_fields_mapping)
-    assert str(result) == u"id = :id_1 AND name = :name_1"
+    result = stubbed_collection._parse_query(OrderedDict([
+        (u"id", 5), (u"name", u"test")
+    ]), fields_mapping=mock_project_fields_mapping)
+    assert UNICODE_TYPE(result) == u"id = :id_1 AND name = :name_1"
 
 
 def test__parse_query_like(stubbed_collection, mock_project_fields_mapping):
@@ -129,12 +130,10 @@ def test__parse_query_regex(stubbed_collection, mock_project_fields_mapping):
 
 
 def test__parse_query_operators(stubbed_collection, mock_project_fields_mapping):
-    result = stubbed_collection._parse_query({
-        u"id": {
-            u"$gt": 5,
-            u"$lt": 10
-        }
-    }, fields_mapping=mock_project_fields_mapping)
+    result = stubbed_collection._parse_query(
+        OrderedDict([(u"id", OrderedDict([(u"$gt", 5), (u"$lt", 10)]))]),
+        fields_mapping=mock_project_fields_mapping
+    )
     assert str(result) == u"id > :id_1 AND id < :id_2"
 
 
@@ -307,10 +306,11 @@ def test_insert_one(stubbed_collection, project_client_lookup):
 def test__python_type_to_string(stubbed_collection):
     assert stubbed_collection._python_type_to_string(int) == u"integer"
     assert stubbed_collection._python_type_to_string(float) == u"float"
-    assert stubbed_collection._python_type_to_string(long) == u"float"
+    if sys.version_info[0] < 3:
+        assert stubbed_collection._python_type_to_string(long) == u"integer"
     assert stubbed_collection._python_type_to_string(datetime.datetime) == u"datetime"
     assert stubbed_collection._python_type_to_string(datetime.date) == u"date"
-    assert stubbed_collection._python_type_to_string(unicode) == u"string"
+    assert stubbed_collection._python_type_to_string(UNICODE_TYPE) == u"string"
 
 
 def test__convert_to_python_type(stubbed_collection):

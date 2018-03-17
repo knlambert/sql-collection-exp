@@ -3,6 +3,10 @@
 This module contains various utils function at global usage.
 """
 
+import sys
+from .compatibility import UNICODE_TYPE
+
+
 def json_set(item, path, value):
     """
     Set the value corresponding to the path in a dict.
@@ -82,7 +86,7 @@ def json_to_one_level(obj, parent=None):
         elif isinstance(value, list):
             for index, item in enumerate(value):
                 item = {
-                    unicode(index): item
+                    UNICODE_TYPE(index): item
                 }
                 if parent is None:
                     output.update(json_to_one_level(item, u".".join([key])))
