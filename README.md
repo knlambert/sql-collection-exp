@@ -7,6 +7,12 @@ a SQL database with a MongoDB like API.
 
 I've developed this to make it easier to build flexible REST Api around SQL databases.
 
+# Installation
+
+```bash
+pip install sqlcollection
+```
+
 # Usage
 
 ```python
