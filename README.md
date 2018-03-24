@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/knlambert/sqlcollection.svg?branch=develop)](https://travis-ci.org/knlambert/sqlcollection)
+[![Build Status](https://travis-ci.org/knlambert/sqlcollection.svg?branch=master)](https://travis-ci.org/knlambert/sqlcollection)
 
 # Purpose
 
