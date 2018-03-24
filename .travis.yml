@@ -1,15 +1,20 @@
 langage: python
 cache: pip
 python:
-  - 2.7
-  - 3.3
-  - 3.4
-  - 3.5
-  - 3.6
-
+- 2.7
+- 3.3
+- 3.4
+- 3.5
+- 3.6
 install:
-  - pip install -r requirements.txt --user
-
+- pip install -r requirements.txt --user
 script:
-  - pytest --cov sqlcollection/
-
+- pytest --cov sqlcollection/
+deploy:
+  provider: pypi
+  user: sqlcollection
+  password:
+    secure: PdJXaGtdBzdTxI1RAoRzVz2ORtVXvuJ9qAXOwDHwmCl0PatEiOHKIRMioLQGumP7f5p16F1HzFHBSwDlySG465lHzpQs0kk/KzsSVCWSKVwFmxl+zG6kkaLQD1on/Uh2YpE6GJN4pci1YhvJ0ogWbP/J6MMrybhS5QF/4+Vi2QtsW9iZPBrcMg2mDWjyAlUzzpaBdmt7koTjOFXAan6FqsomFdk4UJ5nND12ZB66xMZYBEbyX26zPqegtuAm2Q1bhgFB0O91kfkJ8p81lvobbNTT3IxkBVH09T7ZXbbhZuhB5ProfDGorvT6BwJOZeQ8xCu0HxnPmuHlhdZWnjVxHguaUaLLKvgspM+Z6+9Gsfdlb/UiAYe7enp6MgDNN0qg4AyQOkev342POu0wxToswrKzdjTlqGEcvGb+Z5oOFNHNonav6jjjfZIrUPxnO4y5+8096ICJoyObhKAri3bmz3QrKZoMoHUkpZeQffBtM2tZ+AsYc2BCh6HBgWUjSzzQJH3EVe3eAMDWY4L1jsABg0GYxPUjBePPXNOyuNkc5wOsJoV6NbzdA9pvsEUTZHJJlb+Jkd2zFGPV0BTY3ItHzdQhqPuDE65lesw82QaipWLqDrgQAC2dk8/bc3xiule5Z3GbWcHOKlly99Dz3qD3+Y6g8XrYKPYxPhwyTnZthU4=
+  # on:
+  #   branch: master
+  #   tags: true
