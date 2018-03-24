@@ -1,5 +1,6 @@
+sudo: false
 langage: python
-
+cache: pip
 python:
   - 2.7
 
