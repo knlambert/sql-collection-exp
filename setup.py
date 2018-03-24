@@ -9,7 +9,7 @@ setup(
     version=u'0.1',
     packages=[u'sqlcollection', u'sqlcollection.results'],
     install_requires=[u'SQLAlchemy'],
-    download_url = 'https://github.com/knlambert/sqlcollection/archive/0.1.tar.gz',
+    download_url = 'https://github.com/knlambert/sqlcollection/archive/0.1.0.tar.gz',
     url=u'https://github.com/knlambert/sql-collection.git',
     keywords=[]
 )
