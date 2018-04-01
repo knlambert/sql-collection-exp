@@ -31,6 +31,11 @@ class Cursor(object):
         self._lookup = lookup
 
     def __iter__(self):
+        """
+        Called when iterating on the cursor. Should be called once per request.
+        Returns:
+            (iterator): The iterator on items.
+        """
         conn = self._collection_ref.get_connection()
         request = self._serialize()
         rows = conn.execute(request)
