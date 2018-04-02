@@ -14,13 +14,15 @@ class DB(object):
     """
     Wrapper around a database schema.
     """
-    def __init__(self, url):
+    def __init__(self, url, encoding):
         """
         Construct the object.
         Args:
             url (unicode): The DB connection URL.
+            encoding (str): The encoding to use during interactions with the database.
         """
         self._url = url
+        self._encoding = encoding
 
     def __getattr__(self, name):
         """
@@ -43,7 +45,7 @@ class DB(object):
         Returns:
             (sqlalchemy.engine.Engine): The created Engine.
         """
-        return create_engine(self._url)
+        return create_engine(self._url, encoding=self._encoding)
 
     def discover_collections(self):
         """

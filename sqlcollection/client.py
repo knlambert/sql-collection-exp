@@ -15,13 +15,15 @@ class Client(object):
     """
     Handles the connection to a database.
     """
-    def __init__(self, url=None):
+    def __init__(self, url=None, encoding="utf8"):
         """
         Construct the object.
         Args:
             url (unicode): The db connection string.
+            encoding (str): The encoding to use during interactions with the database.
         """
         self._url = url
+        self._encoding = encoding
 
     def __getattr__(self, name):
         """
@@ -53,7 +55,7 @@ class Client(object):
         Returns:
             (sqlalchemy.engine.Engine): The created Engine.
         """
-        return create_engine(self._url)
+        return create_engine(self._url, encoding=self._encoding)
 
     def adapt_url(self, schema_name):
         """
@@ -64,8 +66,6 @@ class Client(object):
         Returns:
             (unicode): The modified url.
         """
-        url = self._url
-
         if u"cloudsql" in self._url:
             regex = u"(\S+)\/([^\/]+)(\?.+\/cloudsql\/.+)"
             m = re.search(regex, self._url)
@@ -81,5 +81,6 @@ class Client(object):
         schema_names = inspect(self.get_engine()).get_schema_names()
         for schema_name in schema_names:
             setattr(self, schema_name, DB(
-                url=self.adapt_url(schema_name)
+                url=self.adapt_url(schema_name),
+                encoding=self._encoding
             ))

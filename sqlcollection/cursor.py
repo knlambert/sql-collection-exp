@@ -3,7 +3,10 @@
 Contains DB Class.
 """
 
+import sys
+import decimal
 from .utils import json_set
+from compatibility import BYTE_TYPE, INT_TYPES
 from sqlalchemy import func, select, subquery, union
 
 
@@ -41,6 +44,34 @@ class Cursor(object):
         rows = conn.execute(request)
         return self._to_dict_generator(select(self._fields).c, rows)
 
+    def _to_dict_generator(self, columns, rows):
+        """
+        Transforms rows into dict.
+        Args:
+            columns (list of sqlalchemy.sql.base.ImmutableColumnCollection): List of columns to set in dict.
+            rows (sqlalchemy.engine.result.ResultProxy): Result set containing the rows.
+
+        Returns:
+            (generator): Generates an iterator on rows transformed in dict.
+        """
+        for row in rows:
+            obj = {}
+
+            for key, value in row.items():
+                python_type = type(value)
+
+                if python_type in [decimal.Decimal, float]:
+                    value = float(value)
+
+                elif python_type is BYTE_TYPE:
+                    value = value.decode(self._collection_ref._db_ref._encoding)
+
+                json_set(obj, key, value)
+
+            yield obj
+
+        raise StopIteration
+
     def _serialize_count(self, with_limit_and_skip=False):
         """
         Serialize the request to send the count of items in the cursor.
@@ -69,14 +100,11 @@ class Cursor(object):
 
         request = select(labels or self._fields).select_from(self._joins)
 
-
         if self._where is not None:
             request = request.where(self._where)
 
         if self._order_by is not None:
             request = request.order_by(*self._order_by)
-
-
 
         if self._offset is not None and add_limit_and_skip:
             request = request.offset(self._offset)
@@ -85,26 +113,6 @@ class Cursor(object):
             request = request.limit(self._limit)
 
         return request
-
-    @staticmethod
-    def _to_dict_generator(columns, rows):
-        """
-        Transforms rows into dict.
-        Args:
-            columns (list of sqlalchemy.sql.base.ImmutableColumnCollection): List of columns to set in dict.
-            rows (sqlalchemy.engine.result.ResultProxy): Result set containing the rows.
-
-        Returns:
-            (generator): Generates an iterator on rows transformed in dict.
-        """
-        for row in rows:
-            obj = {}
-            for index, column in enumerate(columns):
-                json_set(obj, column.name, row[index])
-
-            yield obj
-
-        raise StopIteration
 
     def sort(self, key_or_list, direction=None):
         """
