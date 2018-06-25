@@ -9,13 +9,14 @@ from sqlalchemy import (
     create_engine,
     inspect
 )
+from .utils import parse_url_and_add_param
 
 
 class Client(object):
     """
     Handles the connection to a database.
     """
-    def __init__(self, url=None, encoding="utf8"):
+    def __init__(self, url=None, encoding=None):
         """
         Construct the object.
         Args:
@@ -55,7 +56,12 @@ class Client(object):
         Returns:
             (sqlalchemy.engine.Engine): The created Engine.
         """
-        return create_engine(self._url, encoding=self._encoding)
+        kwargs = {}
+
+        if self._encoding is not None:
+            kwargs[u"encoding"] = self._encoding
+
+        return create_engine(*[self._url], **kwargs)
 
     def adapt_url(self, schema_name):
         """
@@ -75,7 +81,8 @@ class Client(object):
 
         else:
             url = u"{}/{}".format(self._url.rstrip(u"/"), schema_name)
-        return url
+
+        return parse_url_and_add_param(url, u"charset", self._encoding)
 
     def discover_databases(self):
         schema_names = inspect(self.get_engine()).get_schema_names()

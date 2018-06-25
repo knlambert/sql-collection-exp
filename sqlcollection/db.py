@@ -2,19 +2,19 @@
 """
 Contains DB Class.
 """
-
 from sqlalchemy import (
     create_engine,
     MetaData
 )
 from .collection import Collection
+from .utils import parse_url_and_add_param
 
 
 class DB(object):
     """
     Wrapper around a database schema.
     """
-    def __init__(self, url, encoding):
+    def __init__(self, url, encoding=None):
         """
         Construct the object.
         Args:
@@ -45,7 +45,13 @@ class DB(object):
         Returns:
             (sqlalchemy.engine.Engine): The created Engine.
         """
-        return create_engine(self._url, encoding=self._encoding)
+        if self._encoding is not None:
+            url = parse_url_and_add_param(self._url, u"charset", self._encoding)
+            return create_engine(
+                url, encoding=self._encoding
+            )
+        else:
+            return create_engine(self._url)
 
     def discover_collections(self):
         """

@@ -3,10 +3,18 @@
 This module contains unit tests for the methods in utils file.
 """
 
+try:
+    import urlparse
+    from urllib import urlencode
+except ImportError:
+    import urllib.parse as urlparse
+    from urllib.parse import urlencode
+
 from sqlcollection.utils import (
     json_to_one_level,
     json_set,
-    json_get
+    json_get,
+    parse_url_and_add_param
 )
 
 
@@ -79,3 +87,21 @@ def test_json_set_get():
     assert json_get(ret, u"country") == u"France"
     assert json_get(ret, u"unknown", u"yeah") == u"yeah"
     assert json_get(ret, u"banana.country") is None
+
+
+def test_parse_url_and_add_param_nothing_to_add():
+    url_cloudsql = u"mysql://root:localroot@/stuffs?charset=utf8&unix_socket=/cloudsql/project:europe-west1:instance"
+    resulting_url = parse_url_and_add_param(url_cloudsql, u"charset", u"utf8")
+    # Checking result
+    original_parts = list(urlparse.urlparse(url_cloudsql))
+    resulting_parts = list(urlparse.urlparse(resulting_url))
+    assert dict(urlparse.parse_qsl(original_parts[4])) == dict(urlparse.parse_qsl(resulting_parts[4]))
+
+def test_parse_url_and_add_param_add_charset():
+    url_cloudsql = u"mysql://root:localroot@/stuffs?unix_socket=/cloudsql/project:europe-west1:instance"
+    resulting_url = parse_url_and_add_param(url_cloudsql, u"charset", u"utf8")
+    # Checking result
+    resulting_parts = list(urlparse.urlparse(resulting_url))
+    result_args = dict(urlparse.parse_qsl(resulting_parts[4]))
+    assert result_args[u"charset"] == u"utf8"
+    assert result_args[u"unix_socket"] == u"/cloudsql/project:europe-west1:instance"

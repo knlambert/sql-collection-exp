@@ -6,7 +6,7 @@ Contains DB Class.
 import sys
 import decimal
 from .utils import json_set
-from compatibility import BYTE_TYPE, INT_TYPES
+from .compatibility import BYTE_TYPE, INT_TYPES
 from sqlalchemy import func, select, subquery, union
 
 
@@ -59,12 +59,11 @@ class Cursor(object):
 
             for key, value in row.items():
                 python_type = type(value)
-
                 if python_type in [decimal.Decimal, float]:
                     value = float(value)
 
-                elif python_type is BYTE_TYPE:
-                    value = value.decode(self._collection_ref._db_ref._encoding)
+                # elif python_type is BYTE_TYPE:
+                #     value = value.decode(self._collection_ref._db_ref._encoding)
 
                 json_set(obj, key, value)
 

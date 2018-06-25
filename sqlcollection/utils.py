@@ -4,6 +4,13 @@ This module contains various utils function at global usage.
 """
 
 import sys
+try:
+    import urlparse
+    from urllib import urlencode
+except ImportError:
+    import urllib.parse as urlparse
+    from urllib.parse import urlencode
+
 from .compatibility import UNICODE_TYPE
 
 
@@ -99,3 +106,25 @@ def json_to_one_level(obj, parent=None):
                 output[key] = value
     return output
 
+
+def parse_url_and_add_param(url, param_key, param_value):
+    """
+    Take a string url and add a param into it.
+    Args:
+        url (string): The URL to process.
+        param_key (string): The key of the argument to add.
+        param_value (any): The value of the argument.
+
+    Returns:
+        (string): The resulting url with the added parameter.
+    """
+    if param_value is not None:
+        url_parts = list(urlparse.urlparse(url))
+        query = dict(urlparse.parse_qsl(url_parts[4]))
+        query.update({
+            param_key: param_value
+        })
+        url_parts[4] = urlencode(query)
+        return urlparse.unquote(urlparse.urlunparse(url_parts))
+    else:
+        return url
