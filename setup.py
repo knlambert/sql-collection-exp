@@ -6,12 +6,12 @@ from setuptools import setup
 
 setup(
     name=u'sqlcollection',
-    version=u'0.1.3',
+    version=u'0.1.4',
     packages=[u'sqlcollection', u'sqlcollection.results'],
     install_requires=[
         u'SQLAlchemy>=1.2,<2'
     ],
-    download_url = u'https://github.com/knlambert/sqlcollection/archive/0.1.3.tar.gz',
+    download_url = u'https://github.com/knlambert/sqlcollection/archive/0.1.4.tar.gz',
     url=u'https://github.com/knlambert/sql-collection.git',
     keywords=[]
 )
