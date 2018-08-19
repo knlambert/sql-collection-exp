@@ -125,7 +125,7 @@ class Cursor(object):
         """
         fields_mapping, _ = self._collection_ref.generate_select_dependencies(self._lookup)
 
-        if isinstance(key_or_list, unicode):
+        if isinstance(key_or_list, str):
             key_or_list = [key_or_list]
 
         if direction is None:
