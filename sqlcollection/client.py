@@ -37,18 +37,11 @@ class Client(object):
             The attribute attribute.
         """
         if name not in self.__dict__:
-            self.discover_databases()
+            setattr(self, name, DB(
+                url=self.adapt_url(name)
+            ))
 
         return self.__dict__[name]
-
-    def get_schema_names(self):
-        """
-        Get the list of schemas in the instance.
-        Returns:
-            (list of unicode): List of schemas.
-        """
-        engine = self.get_engine()
-        return inspect(engine).get_schema_names()
 
     def get_engine(self):
         """
@@ -84,10 +77,3 @@ class Client(object):
 
         return parse_url_and_add_param(url, u"charset", self._encoding)
 
-    def discover_databases(self):
-        schema_names = inspect(self.get_engine()).get_schema_names()
-        for schema_name in schema_names:
-            setattr(self, schema_name, DB(
-                url=self.adapt_url(schema_name),
-                encoding=self._encoding
-            ))

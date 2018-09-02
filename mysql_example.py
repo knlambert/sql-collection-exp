@@ -25,15 +25,13 @@ from sqlcollection import Client
 import json
 import datetime
 
-client = Client(url=u'mysql://root:localroot1234@127.0.0.1/')
-hour = client.hours_count.hour
+client = Client(url=u'mysql+mysqlconnector://root:localroot1234@127.0.0.1/')
+user = client.user_api._user
 
-description = hour.get_description(auto_lookup=3)
+description = user.get_description(auto_lookup=3)
 print(json.dumps(description, indent=4))
 
-cursor = hour.find(query={u"project.id": {
-    u"$ne": 2
-}}, auto_lookup=0).sort(u"project.id").limit(1).skip(0)
+cursor = user.find(query={}, auto_lookup=1).sort(u"id").limit(2).skip(0)
 for item in cursor:
     print(item)
 #
@@ -46,30 +44,28 @@ for item in cursor:
 # print(count)
 # quit()
 #
-ret = hour.insert_one({
-        u'issue': '',
-        u'affected_to': {
-            u"id": 1
-        },
-        u'project': {
-            u"id": 2
-        },
-        u'started_at': datetime.datetime(2017, 12, 18, 14, 0),
-        u'minutes': 333
-}, auto_lookup=1)
-print(ret.inserted_id)
+# ret = user.insert_one({
+#         "email": "test2",
+#         "name": "test",
+#         "hash": "test",
+#         "salt": "test",
+#         "customer_id": {
+#             "id": 1
+#         }
+# }, auto_lookup=1)
+# print(ret.inserted_id)
 # #
-# # ret = hour.delete_many({
-# #     u"project.id": 2
-# # }, auto_lookup=3)
-#
-ret = hour.update_many({
-    u"project.id": 2
-}, {
-    u"$set": {
-        u"issue": u"updated",
-        u"project": {
-            u"id": 1
-        }
-    }
+ret = user.delete_many({
+    u"customer_id.id": 2
 }, auto_lookup=3)
+#
+# ret = hour.update_many({
+#     u"project.id": 2
+# }, {
+#     u"$set": {
+#         u"issue": u"updated",
+#         u"project": {
+#             u"id": 1
+#         }
+#     }
+# }, auto_lookup=3)

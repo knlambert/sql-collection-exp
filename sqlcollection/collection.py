@@ -427,7 +427,7 @@ class Collection(object):
         for column in table.c:
 
             field = {
-                u"name": column.name.decode(u"utf8"),
+                u"name": column.name,
                 u"primary_key": column.primary_key,
                 u"nullable": column.nullable,
                 u"type": self._python_type_to_string(column.type.python_type)
@@ -452,6 +452,6 @@ class Collection(object):
 
         return {
             u"fields": fields,
-            u"as": join_as or table.name.decode(u"utf8"),
-            u"table": table.name.decode(u"utf8")
+            u"as": join_as or table.name,
+            u"table": table.name
         }
