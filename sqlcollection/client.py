@@ -77,13 +77,3 @@ class Client(object):
 
         return parse_url_and_add_param(url, u"charset", self._encoding)
 
-<<<<<<< HEAD
-    def discover_databases(self):
-        schema_names = inspect(self.get_engine()).get_schema_names()
-        for schema_name in schema_names:
-            setattr(self, schema_name, DB(
-                url=self.adapt_url(schema_name),
-                encoding=self._encoding
-            ))
-=======
->>>>>>> Database selection doesn't try to discover anymore (useless and error prone).
