@@ -16,14 +16,16 @@ class Client(object):
     """
     Handles the connection to a database.
     """
-    def __init__(self, url=None, encoding=None):
+    def __init__(self, url=None, schema=None, encoding=None):
         """
         Construct the object.
         Args:
             url (unicode): The db connection string.
+            schema (unicode): The schema to use (optionnal)/
             encoding (str): The encoding to use during interactions with the database.
         """
         self._url = url
+        self._schema = schema
         self._encoding = encoding
 
     def __getattr__(self, name):
@@ -38,7 +40,8 @@ class Client(object):
         """
         if name not in self.__dict__:
             setattr(self, name, DB(
-                url=self.adapt_url(name)
+                url=self.adapt_url(name),
+                schema=self._schema
             ))
 
         return self.__dict__[name]

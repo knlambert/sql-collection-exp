@@ -14,14 +14,16 @@ class DB(object):
     """
     Wrapper around a database schema.
     """
-    def __init__(self, url, encoding=None):
+    def __init__(self, url, schema=None, encoding=None):
         """
         Construct the object.
         Args:
             url (unicode): The DB connection URL.
+            schema (unicode): Optionnal schema to select.
             encoding (str): The encoding to use during interactions with the database.
         """
         self._url = url
+        self._schema = schema
         self._encoding = encoding
 
     def __getattr__(self, name):
@@ -58,10 +60,13 @@ class DB(object):
         Discover tables, create a collection object for each one in the
         schema.
         """
-        meta = MetaData()
+        meta = MetaData(schema=self._schema)
         meta.reflect(bind=self.get_engine(), views=True)
+
         for key in meta.tables:
             root_table = meta.tables[key]
+            if self._schema:
+                key = key.split(".")[1]
             setattr(self, key, Collection(
                 db_ref=self,
                 table=root_table
